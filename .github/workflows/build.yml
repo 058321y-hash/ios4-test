@@ -15,22 +15,36 @@ jobs:
         run: |
           git clone --depth=1 --recurse-submodules https://github.com/theos/theos.git theos
           git clone --depth=1 https://github.com/theos/sdks.git sdks
-          cp -r sdks/iPhoneOS9.3.sdk sdks/iPhoneOS10.3.sdk theos/sdks/
+          cp -r sdks/iPhoneOS10.3.sdk theos/sdks/
       - name: Get toolchain
         run: |
           mkdir -p theos/toolchain
           curl -sL https://github.com/L1ghtmann/llvm-project/releases/latest/download/iOSToolchain-x86_64.tar.xz | tar -xJf - -C theos/toolchain/
-      - name: Check launch stubs
-        run: |
-          for v in 9.3 10.3; do echo "== SDK $v"; ls theos/sdks/iPhoneOS$v.sdk/usr/lib/system | grep -i launch || echo "no launch files"; done
       - name: Build
-        run: |
-          make package || make clean package TARGET=iphone:clang:10.3:7.0
-      - name: Inspect result
+        run: make package TARGET=iphone:clang:10.3:7.0
+      - name: Inspect Mach-O
         if: always()
         run: |
-          ls -R packages 2>/dev/null || true
-          find .theos -type f -name hello4 -exec file {} \; || true
+          python3 - <<'PY'
+          import struct
+          p = ".theos/obj/debug/armv7/hello4"
+          d = open(p, "rb").read()
+          magic, cputype, cpusub, ftype, ncmds = struct.unpack("<IIIII", d[:20])
+          print("magic", hex(magic), "cputype", hex(cputype), "cpusubtype", cpusub)
+          off = 28
+          for i in range(ncmds):
+              cmd, size = struct.unpack("<II", d[off:off+8])
+              if cmd in (0x24, 0x25):
+                  ver, sdk = struct.unpack("<II", d[off+8:off+16])
+                  f = lambda v: "%d.%d.%d" % (v >> 16, (v >> 8) & 255, v & 255)
+                  print("LC_VERSION_MIN: min =", f(ver), " sdk =", f(sdk))
+              elif cmd == 0x32:
+                  print("LC_BUILD_VERSION present (unexpected for iOS 7)")
+              elif cmd in (0xc, 0x8000001f):
+                  noff = struct.unpack("<I", d[off+8:off+12])[0]
+                  print("LINKS:", d[off+noff:off+size].split(b"\0")[0].decode())
+              off += size
+          PY
       - name: Upload deb
         if: always()
         uses: actions/upload-artifact@v4
