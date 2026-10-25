@@ -1,0 +1,17 @@
+name: diag
+on: workflow_dispatch
+jobs:
+  diag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone Theos and SDKs
+        run: |
+          git clone --depth=1 --recurse-submodules https://github.com/theos/theos.git theos
+          git clone --depth=1 https://github.com/theos/sdks.git sdks
+      - name: List SDKs
+        run: ls sdks
+      - name: Theos layout
+        run: ls theos theos/bin
+      - name: Toolchain info in installer
+        run: grep -n -i -E "toolchain|linux" theos/bin/install-theos | head -60 || true
+    
