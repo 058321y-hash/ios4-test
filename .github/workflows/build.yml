@@ -15,19 +15,21 @@ jobs:
         run: |
           git clone --depth=1 --recurse-submodules https://github.com/theos/theos.git theos
           git clone --depth=1 https://github.com/theos/sdks.git sdks
-          cp -r sdks/iPhoneOS9.3.sdk theos/sdks/
+          cp -r sdks/iPhoneOS9.3.sdk sdks/iPhoneOS10.3.sdk theos/sdks/
       - name: Get toolchain
         run: |
           mkdir -p theos/toolchain
           curl -sL https://github.com/L1ghtmann/llvm-project/releases/latest/download/iOSToolchain-x86_64.tar.xz | tar -xJf - -C theos/toolchain/
-          ls theos/toolchain/linux/iphone/bin | head -80
+      - name: Check launch stubs
+        run: |
+          for v in 9.3 10.3; do echo "== SDK $v"; ls theos/sdks/iPhoneOS$v.sdk/usr/lib/system | grep -i launch || echo "no launch files"; done
       - name: Build
-        run: make package
+        run: |
+          make package || make clean package TARGET=iphone:clang:10.3:7.0
       - name: Inspect result
         if: always()
         run: |
-          ls -R packages .theos/obj 2>/dev/null || true
-          file .theos/obj/hello4 2>/dev/null || true
+          ls -R packages 2>/dev/null || true
           find .theos -type f -name hello4 -exec file {} \; || true
       - name: Upload deb
         if: always()
