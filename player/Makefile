@@ -5,7 +5,7 @@ include $(THEOS)/makefiles/common.mk
 
 APPLICATION_NAME = Player
 Player_FILES = main.m
-Player_FRAMEWORKS = UIKit Foundation CoreGraphics
+Player_FRAMEWORKS = UIKit Foundation CoreGraphics AVFoundation MediaPlayer AudioToolbox
 Player_CFLAGS = -fobjc-arc
 Player_LDFLAGS = -Wl,-U,_objc_msgSend_stret
 
