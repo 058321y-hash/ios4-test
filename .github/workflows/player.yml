@@ -1,0 +1,39 @@
+name: player
+on: workflow_dispatch
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    env:
+      THEOS: ${{ github.workspace }}/theos
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y build-essential fakeroot rsync curl perl git libxml2 libtinfo5
+      - name: Get Theos
+        run: |
+          git clone --depth=1 --recurse-submodules https://github.com/theos/theos.git theos
+          git clone --depth=1 https://github.com/theos/sdks.git sdks
+          cp -r sdks/iPhoneOS10.3.sdk theos/sdks/
+      - name: Get toolchain
+        run: |
+          mkdir -p theos/toolchain
+          curl -sL https://github.com/L1ghtmann/llvm-project/releases/latest/download/iOSToolchain-x86_64.tar.xz | tar -xJf - -C theos/toolchain/
+      - name: Build
+        working-directory: player
+        run: make package
+      - name: Inspect
+        if: always()
+        run: |
+          find player/packages -type f
+          find player/.theos/obj -type f -name Player -exec file {} \;
+          find player/.theos/_ -type f | head -20
+      - name: Upload deb
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: player-deb
+          path: player/packages/*.deb
+          if-no-files-found: warn
+        
