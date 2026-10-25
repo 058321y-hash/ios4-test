@@ -1,0 +1,8 @@
+Package: com.example.player
+Name: Player
+Version: 0.0.1
+Architecture: iphoneos-arm
+Description: lightweight music player for iPhone 4
+Maintainer: test
+Author: test
+Section: Multimedia
